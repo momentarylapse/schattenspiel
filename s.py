@@ -51,8 +51,12 @@ def load_config():
 		print("no config.txt found")
 	with open("config.txt") as f:
 		for line in f:
+			if line.strip()[:1] == "#":
+				# comment
+				continue
 			x = line.split("=")
 			if len(x) < 2:
+				# no A=B
 				continue
 			key, value = x[0].strip(), x[1].strip()
 			if key == "drum.x":
@@ -72,7 +76,7 @@ def prepare_drum_mask():
 	global drum_mask, DX0, DX1, DY0, DY1
 
 	# some mask...
-	drum_mask = np.zeros([NX,NY], dtype=np.int8)
+	drum_mask = np.zeros([NX,NY])#, dtype=np.int8)
 	for i in range(NX):
 		for j in range(NY):
 			if (i - DRUM_CENTER[0])**2 + (j - DRUM_CENTER[1])**2 < DRUM_RADIUS**2:
@@ -114,7 +118,9 @@ while cap.isOpened():
 		if frame_no > -80:
 			#fg = fgmask * drum_mask.T
 			fg = cv2.bitwise_or(fgmask, fgmask, mask=drum_mask)
-			lines = cv2.HoughLinesP(fg[DY0:DY1,DX0:DX1], 1, np.pi/18, 300, 100)
+			min_line_length = DRUM_RADIUS//4
+			max_line_gap = DRUM_RADIUS//8
+			lines = cv2.HoughLinesP(fg[DY0:DY1,DX0:DX1], 1, np.pi/18, min_line_length, max_line_gap)
 
 			view = np.stack([fgmask, fgmask, fgmask], axis=2)
 			view = cv2.circle(view, DRUM_CENTER, DRUM_RADIUS, (180, 50,50), 5)
@@ -136,11 +142,13 @@ while cap.isOpened():
 					if x1 > x0:
 						x0,x1 = x1,x0
 						y0,y1 = y1,y0
-				view = cv2.circle(view, (x0,y0), 50, (50,50,250), 20)
+				view = cv2.circle(view, (x0,y0), NY//20, (50,50,250), NY//60)
 #				print(f"{x0}:{y0}     ({len(lines)})")
 #			else:
 #				print("")
 			cv2.imshow('Frame', view)
+			#cv2.imshow('Frame', fg)
+			#cv2.imshow('Frame2', drum_mask)
 
 			# Press Q on keyboard to exit
 			if cv2.waitKey(2) & 0xff in [ord('q'), 0x1b]:
