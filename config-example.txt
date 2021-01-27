@@ -1,0 +1,4 @@
+drum.x = 1050
+drum.y = 600
+drum.radius = 320
+stick.point = right
